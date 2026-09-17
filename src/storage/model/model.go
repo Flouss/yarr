@@ -17,6 +17,7 @@ type Feed struct {
 	Link        string `json:"link"`
 	FeedLink    string `json:"feed_link"`
 	Icon        *Icon  `json:"icon,omitempty"`
+	Readability bool   `json:"readability"`
 }
 
 // Icon holds a feed favicon's raw bytes and serializes to a self-describing
@@ -233,10 +234,11 @@ type UpdateFeedStateParams struct {
 }
 
 type UpdateFeedParams struct {
-	Title    *string
-	FeedLink *string
-	FolderID Nullable[int64]
-	Icon     Nullable[Icon]
+	Title       *string
+	FeedLink    *string
+	FolderID    Nullable[int64]
+	Icon        Nullable[Icon]
+	Readability *bool
 }
 
 type Nullable[T any] struct {

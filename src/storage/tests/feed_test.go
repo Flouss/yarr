@@ -80,6 +80,29 @@ func TestUpdateFeed(t *testing.T) {
 	})
 }
 
+func TestUpdateFeedReadability(t *testing.T) {
+	dbtest(t, func(t *testing.T, db storage.Storage) {
+		feed1 := db.CreateFeed(model.CreateFeedParams{Title: "feed 1", FeedLink: "http://example1.com/feed.xml"})
+		if feed1.Readability {
+			t.Fatal("expected readability to default to false")
+		}
+
+		readabilityOn := true
+		db.UpdateFeed(feed1.Id, model.UpdateFeedParams{Readability: &readabilityOn})
+		feed2 := db.GetFeed(feed1.Id)
+		if !feed2.Readability {
+			t.Fatal("expected readability to be enabled")
+		}
+
+		readabilityOff := false
+		db.UpdateFeed(feed1.Id, model.UpdateFeedParams{Readability: &readabilityOff})
+		feed3 := db.GetFeed(feed1.Id)
+		if feed3.Readability {
+			t.Fatal("expected readability to be disabled")
+		}
+	})
+}
+
 func TestFeedStats(t *testing.T) {
 	dbtest(t, func(t *testing.T, db storage.Storage) {
 		// empty

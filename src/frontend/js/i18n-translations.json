@@ -289,6 +289,16 @@
     "zh": "修改链接",
     "ru": "Изменить ссылку"
   },
+  "auto_readability": {
+    "en": "Auto full content",
+    "de": "Automatischer Lesbarkeits-Modus",
+    "fr": "Contenu complet automatique",
+    "es": "Contenido completo automático",
+    "ja": "自動で全文表示",
+    "pt": "Conteúdo completo automático",
+    "zh": "自动加载全文",
+    "ru": "Автоматический полный текст"
+  },
   "move_to": {
     "en": "Move to...",
     "de": "Verschieben nach...",

@@ -263,6 +263,14 @@
             <v-icon class="me-1" name="edit" />
             {{ $t("change_link") }}
           </button>
+          <button
+            class="c-dropdown-item w-100 text-start d-flex gap-1"
+            :aria-pressed="!!current.feed.readability"
+            @click="toggleFeedReadability(current.feed)">
+            <v-icon class="me-1" name="book-open" />
+            {{ $t("auto_readability") }}
+            <v-icon class="ms-auto" name="check" v-if="current.feed.readability" />
+          </button>
           <div class="c-dropdown-divider"></div>
           <header class="c-dropdown-header" role="heading" aria-level="2">
             {{ $t("move_to") }}
@@ -858,6 +866,10 @@ export default defineComponent({
         return;
       }
       this.itemSelectedDetails = item;
+      const feed = this.feedsById[item.feed_id];
+      if (feed?.readability && item.link) {
+        this.fetchReadability(item, { silent: true });
+      }
       const details = this.itemSelectedDetails;
       if (details.status == "unread") {
         const [updateErr] = await to(api.items.update(details.id, { status: "read" }));
@@ -1171,6 +1183,18 @@ export default defineComponent({
         feed.feed_link = newLink;
       }
     },
+    async toggleFeedReadability(feed: Feed) {
+      const readability = !feed.readability;
+      const [err] = await to(api.feeds.update(feed.id, { readability }));
+      if (err) {
+        this.$refs.toast.addToast(
+          { title: this.$t("fail_save_feed"), description: this.errDescription(err) },
+          { level: "fail", closeable: false },
+        );
+        return;
+      }
+      feed.readability = readability;
+    },
     async renameFeed(feed: Feed) {
       const newTitle = prompt(this.$t("prompt_new_title"), feed.title);
       if (newTitle) {
@@ -1273,15 +1297,23 @@ export default defineComponent({
       }
       var item = this.itemSelectedDetails;
       if (!item?.link) return;
+      await this.fetchReadability(item, { silent: false });
+    },
+    async fetchReadability(item: Item, opts: { silent: boolean }) {
       this.loading.readability = true;
-      const [err, data] = await to(api.crawl(item!.link));
+      const [err, data] = await to(api.crawl(item.link));
       this.loading.readability = false;
 
+      // the user may have selected a different article while this was in flight
+      if (this.itemSelected !== item.id) return;
+
       if (err) {
-        this.$refs.toast.addToast(
-          { title: this.$t("fail_readability"), description: this.errDescription(err) },
-          { level: "fail", closeable: false },
-        );
+        if (!opts.silent) {
+          this.$refs.toast.addToast(
+            { title: this.$t("fail_readability"), description: this.errDescription(err) },
+            { level: "fail", closeable: false },
+          );
+        }
       } else {
         this.itemSelectedReadability = data?.content || "";
       }
