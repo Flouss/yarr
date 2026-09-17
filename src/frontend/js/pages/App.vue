@@ -120,6 +120,26 @@
           </div>
           <div class="c-dropdown-divider"></div>
           <header class="c-dropdown-header" role="heading" aria-level="2">
+            {{ $t("mark_read_on_scroll") }}
+          </header>
+          <div class="d-flex">
+            <button
+              class="flex-fill c-dropdown-item text-center"
+              :aria-pressed="markReadOnScroll"
+              :class="{ active: markReadOnScroll }"
+              @click.stop="markReadOnScroll = true">
+              {{ $t("on") }}
+            </button>
+            <button
+              class="flex-fill c-dropdown-item text-center"
+              :aria-pressed="!markReadOnScroll"
+              :class="{ active: !markReadOnScroll }"
+              @click.stop="markReadOnScroll = false">
+              {{ $t("off") }}
+            </button>
+          </div>
+          <div class="c-dropdown-divider"></div>
+          <header class="c-dropdown-header" role="heading" aria-level="2">
             {{ $t("subscriptions") }}
           </header>
           <form enctype="multipart/form-data" tabindex="-1" ref="opmlInputForm">
@@ -324,11 +344,12 @@
       <div
         id="item-list-scroll"
         class="d-flex flex-column p-2 overflow-auto border-top flex-grow-1 gap-1"
-        v-scroll="loadMoreItems"
+        v-scroll="onItemListScroll"
         ref="itemlist">
         <div
           v-for="item in items"
           :key="item.id"
+          :data-item-id="item.id"
           class="c-listitem d-flex flex-column user-select-none"
           role="radio"
           :aria-checked="itemSelected === item.id"
@@ -630,6 +651,7 @@ export default defineComponent({
       itemSelectedReadability: "",
       itemSearch: "",
       itemSortNewestFirst: s.sort_newest_first as boolean,
+      markReadOnScroll: s.mark_read_on_scroll as boolean,
       itemListWidth: s.item_list_width || 300,
 
       stats: { folders: {}, feeds: {}, total: { unread: 0, starred: 0 } } as {
@@ -858,20 +880,8 @@ export default defineComponent({
         return;
       }
       this.itemSelectedDetails = item;
-      const details = this.itemSelectedDetails;
-      if (details.status == "unread") {
-        const [updateErr] = await to(api.items.update(details.id, { status: "read" }));
-        if (updateErr) {
-          this.$refs.toast.addToast(
-            { title: this.$t("fail_update_article"), description: this.errDescription(updateErr) },
-            { level: "fail", closeable: false },
-          );
-          return;
-        }
-        this.feedStats[details.feed_id].unread -= 1;
-        var itemInList = this.items.find(i => i.id == item.id);
-        if (itemInList) itemInList.status = "read";
-        details.status = "read";
+      if (item.status == "unread") {
+        await this.markItemRead(item.id);
       }
     },
     itemSearch() {
@@ -888,6 +898,16 @@ export default defineComponent({
         return;
       }
       this.refreshItems(false);
+    },
+    async markReadOnScroll(newVal, oldVal) {
+      if (oldVal === undefined) return;
+      const [err] = await to(api.settings.update({ mark_read_on_scroll: newVal }));
+      if (err) {
+        this.$refs.toast.addToast(
+          { title: this.$t("fail_save_settings"), description: this.errDescription(err) },
+          { level: "fail", closeable: false },
+        );
+      }
     },
     feedListWidth: debounce(function (newVal, oldVal) {
       if (oldVal === undefined) return; // do nothing, initial setup
@@ -1057,6 +1077,46 @@ export default defineComponent({
       if (this.itemListCloseToBottom()) return this.refreshItems(true);
       if (this.itemSelected && this.itemSelected === this.items[this.items.length - 1].id)
         return this.refreshItems(true);
+    },
+    async markItemRead(id: number) {
+      const itemInList = this.items.find(i => i.id === id);
+      const details = this.itemSelectedDetails?.id === id ? this.itemSelectedDetails : null;
+      if (!itemInList && !details) return;
+      if ((itemInList || details)?.status !== "unread") return;
+
+      const [err] = await to(api.items.update(id, { status: "read" }));
+      if (err) {
+        this.$refs.toast.addToast(
+          { title: this.$t("fail_update_article"), description: this.errDescription(err) },
+          { level: "fail", closeable: false },
+        );
+        return;
+      }
+      const feedId = itemInList?.feed_id ?? details?.feed_id;
+      if (feedId != null) this.feedStats[feedId].unread -= 1;
+      if (itemInList) itemInList.status = "read";
+      if (details) details.status = "read";
+    },
+    markPassedItemsRead() {
+      if (!this.markReadOnScroll) return;
+      const container = this.$refs.itemlist;
+      // guards against a hidden/zero-size list (e.g. collapsed on narrow screens) where
+      // every item's rect would read as "above the top" and get mass-marked read at once
+      if (!container || container.scrollHeight === 0) return;
+
+      const containerTop = container.getBoundingClientRect().top;
+      for (const item of this.items) {
+        if (item.status !== "unread") continue;
+        const el = container.querySelector(`[data-item-id="${item.id}"]`);
+        if (!el) continue;
+        if (el.getBoundingClientRect().bottom <= containerTop) {
+          this.markItemRead(item.id);
+        }
+      }
+    },
+    onItemListScroll() {
+      this.loadMoreItems();
+      this.markPassedItemsRead();
     },
     async markItemsRead() {
       const markQuery = this.getItemsQuery();

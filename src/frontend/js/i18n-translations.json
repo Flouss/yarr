@@ -109,6 +109,36 @@
     "zh": "最旧",
     "ru": "Старые"
   },
+  "mark_read_on_scroll": {
+    "en": "Mark read on scroll",
+    "de": "Beim Scrollen als gelesen markieren",
+    "fr": "Mark read on scroll",
+    "es": "Mark read on scroll",
+    "ja": "Mark read on scroll",
+    "pt": "Mark read on scroll",
+    "zh": "Mark read on scroll",
+    "ru": "Mark read on scroll"
+  },
+  "on": {
+    "en": "On",
+    "de": "An",
+    "fr": "On",
+    "es": "On",
+    "ja": "On",
+    "pt": "On",
+    "zh": "On",
+    "ru": "On"
+  },
+  "off": {
+    "en": "Off",
+    "de": "Aus",
+    "fr": "Off",
+    "es": "Off",
+    "ja": "Off",
+    "pt": "Off",
+    "zh": "Off",
+    "ru": "Off"
+  },
   "subscriptions": {
     "en": "Subscriptions",
     "de": "Abonnements",
