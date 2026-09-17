@@ -195,7 +195,7 @@
       <div class="app-toolbar px-2 pb-1 d-flex gap-1 align-items-center">
         <button
           class="c-button-pill d-md-none"
-          @click="feedSelected = null"
+          @click="closeFeedList()"
           :title="$t('show_feeds')">
           <v-icon name="chevron-left" />
         </button>
@@ -566,6 +566,16 @@ type Stats = { unread: number; starred: number };
 
 var TITLE = document.title;
 
+// mirrors the breakpoints in responsive.css: below 992px, selecting an item
+// hides the list and shows the item alone; below 768px, selecting a feed
+// additionally hides the feed list and shows the item list alone.
+function isItemDrilldown() {
+  return window.matchMedia("(max-width: 991.98px)").matches;
+}
+function isFeedDrilldown() {
+  return window.matchMedia("(max-width: 767.98px)").matches;
+}
+
 export default defineComponent({
   mixins: [debounceMixin],
   components: {
@@ -594,6 +604,13 @@ export default defineComponent({
     // let the OS/browser back gesture (e.g. iOS edge-swipe) close an open
     // article the same way the close button does
     window.addEventListener("popstate", this.onPopState);
+
+    // the persisted feed selection already puts us on a "feed page" (item
+    // list) before any in-app navigation happens, so the swipe-back gesture
+    // needs a history entry to land on from the very first load too
+    if (this.feedSelected !== null && isFeedDrilldown()) {
+      history.pushState({ yarrFeed: true }, "");
+    }
 
     const [statsErr] = await to(this.refreshStats());
     if (statsErr) {
@@ -831,6 +848,9 @@ export default defineComponent({
     },
     async feedSelected(newVal, oldVal) {
       if (oldVal === undefined) return;
+      if (oldVal === null && newVal !== null && isFeedDrilldown()) {
+        history.pushState({ yarrFeed: true }, "");
+      }
       this.itemSelected = null;
       this.items = [];
       this.itemsHasMore = true;
@@ -944,7 +964,7 @@ export default defineComponent({
       document.documentElement.dataset.theme = this.theme.name;
     },
     openItem(id: number) {
-      if (this.itemSelected === null) {
+      if (this.itemSelected === null && isItemDrilldown()) {
         history.pushState({ yarrItem: true }, "");
       }
       this.itemSelected = id;
@@ -956,8 +976,19 @@ export default defineComponent({
         this.itemSelected = null;
       }
     },
+    closeFeedList() {
+      if (history.state?.yarrFeed) {
+        history.back();
+      } else {
+        this.feedSelected = null;
+      }
+    },
     onPopState() {
-      if (this.itemSelected !== null) this.itemSelected = null;
+      if (this.itemSelected !== null) {
+        this.itemSelected = null;
+      } else if (this.feedSelected !== null) {
+        this.feedSelected = null;
+      }
     },
     async refreshStats(loopMode?: boolean) {
       const [err, data] = await to(api.status());
