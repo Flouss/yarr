@@ -37,6 +37,7 @@ func (s *SQLiteStorage) CreateFeed(params model.CreateFeedParams) *model.Feed {
 		Link:        params.Link,
 		FeedLink:    params.FeedLink,
 		FolderId:    params.FolderID,
+		Readability: false,
 	}
 }
 
@@ -62,7 +63,8 @@ func (s *SQLiteStorage) UpdateFeed(feedId int64, params model.UpdateFeedParams) 
 			title     = coalesce(:title, title),
 			feed_link = coalesce(:feed_link, feed_link),
 			folder_id = case when :update_folder_id then :folder_id else folder_id end,
-			icon      = case when :update_icon then :icon else icon end
+			icon      = case when :update_icon then :icon else icon end,
+			readability = coalesce(:readability, readability)
 		where id = :id
 	`,
 		sql.Named("id", feedId),
@@ -72,6 +74,7 @@ func (s *SQLiteStorage) UpdateFeed(feedId int64, params model.UpdateFeedParams) 
 		sql.Named("folder_id", params.FolderID.Value),
 		sql.Named("update_icon", params.Icon.Set),
 		sql.Named("icon", params.Icon.Value),
+		sql.Named("readability", params.Readability),
 	)
 	if err != nil {
 		log.Print(err)
@@ -83,7 +86,7 @@ func (s *SQLiteStorage) UpdateFeed(feedId int64, params model.UpdateFeedParams) 
 func (s *SQLiteStorage) ListFeeds() []model.Feed {
 	result := make([]model.Feed, 0)
 	rows, err := s.db.Query(`
-		select id, folder_id, title, description, link, feed_link, icon
+		select id, folder_id, title, description, link, feed_link, icon, readability
 		from feeds
 		order by title collate nocase
 	`)
@@ -101,6 +104,7 @@ func (s *SQLiteStorage) ListFeeds() []model.Feed {
 			&f.Link,
 			&f.FeedLink,
 			&f.Icon,
+			&f.Readability,
 		)
 		if err != nil {
 			log.Print(err)
@@ -116,11 +120,11 @@ func (s *SQLiteStorage) GetFeed(id int64) *model.Feed {
 	err := s.db.QueryRow(`
 		select
 			id, folder_id, title, link, feed_link,
-			icon
+			icon, readability
 		from feeds where id = :id
 	`, sql.Named("id", id)).Scan(
 		&f.Id, &f.FolderId, &f.Title, &f.Link, &f.FeedLink,
-		&f.Icon,
+		&f.Icon, &f.Readability,
 	)
 	if err != nil {
 		if err != sql.ErrNoRows {

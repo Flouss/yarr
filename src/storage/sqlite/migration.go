@@ -23,6 +23,7 @@ var migrations = []func(*sql.Tx) error{
 	m13_consolidate_feed_states,
 	m14_upgrade_fts5,
 	m15_update_item_update_trigger,
+	m16_add_feed_readability,
 }
 
 var maxVersion = int64(len(migrations))
@@ -430,5 +431,10 @@ func m15_update_item_update_trigger(tx *sql.Tx) error {
 		  insert into search(rowid, title, content) values (new.id, new.title, strip_html(new.content));
 		end;
 	`)
+	return err
+}
+
+func m16_add_feed_readability(tx *sql.Tx) error {
+	_, err := tx.Exec(`alter table feeds add column readability boolean not null default false`)
 	return err
 }

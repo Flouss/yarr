@@ -14,6 +14,7 @@ export interface Feed {
   link: string;
   feed_link: string;
   icon?: string | null;
+  readability: boolean;
 }
 
 export interface Folder {
@@ -96,6 +97,7 @@ export interface FeedUpdateData {
   title?: string;
   folder_id?: number | null;
   feed_link?: string;
+  readability?: boolean;
 }
 
 export interface FolderCreateData {

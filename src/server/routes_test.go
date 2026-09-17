@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/nkanaev/yarr/src/storage"
+	"github.com/nkanaev/yarr/src/storage/model"
 )
 
 func TestStatic(t *testing.T) {
@@ -75,6 +76,61 @@ func TestIndexGzipped(t *testing.T) {
 	}
 	if response.Header.Get("content-type") != "text/html" {
 		t.Errorf("invalid content-type header: %#v", response.Header.Get("content-type"))
+	}
+}
+
+func TestExtractReadableContent(t *testing.T) {
+	t.Run("returns sanitized content for a real article", func(t *testing.T) {
+		body := `<html><body><article><p>` + strings.Repeat("meaningful text ", 20) + `</p></article></body></html>`
+		content, ok := extractReadableContent("http://example.com", body)
+		if !ok {
+			t.Fatal("expected extraction to succeed")
+		}
+		if !strings.Contains(content, "meaningful text") {
+			t.Fatalf("expected content to contain article text, got %q", content)
+		}
+	})
+
+	t.Run("fails when the page has no extractable text", func(t *testing.T) {
+		body := `<html><body><script>doStuff()</script></body></html>`
+		content, ok := extractReadableContent("http://example.com", body)
+		if ok {
+			t.Fatalf("expected extraction to fail, got content %q", content)
+		}
+		if content != "" {
+			t.Fatalf("expected empty content on failure, got %q", content)
+		}
+	})
+}
+
+func TestFeedUpdateReadability(t *testing.T) {
+	log.SetOutput(io.Discard)
+	defer log.SetOutput(os.Stderr)
+
+	db, err := storage.New(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer("127.0.0.1:8000")
+	server.Storage = NewLocalStorage(db)
+	handler := server.Handler()
+
+	feed := db.CreateFeed(model.CreateFeedParams{Title: "feed", FeedLink: "http://example.com/feed.xml"})
+	if feed.Readability {
+		t.Fatal("expected readability to default to false")
+	}
+
+	body := `{"readability":true}`
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("PUT", fmt.Sprintf("/api/feeds/%d", feed.Id), strings.NewReader(body))
+	request.Header.Set("Content-Type", "application/json")
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Result().StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", recorder.Result().StatusCode)
+	}
+	if updated := db.GetFeed(feed.Id); !updated.Readability {
+		t.Fatal("expected readability to be enabled")
 	}
 }
 

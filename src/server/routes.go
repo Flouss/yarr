@@ -294,6 +294,12 @@ func (s *Server) handleFeed(w http.ResponseWriter, r *http.Request) {
 				params.FeedLink = &l
 			}
 		}
+		if readability, ok := body["readability"]; ok {
+			if reflect.TypeOf(readability).Kind() == reflect.Bool {
+				v := readability.(bool)
+				params.Readability = &v
+			}
+		}
 		s.db(r).UpdateFeed(id, params)
 		w.WriteHeader(http.StatusOK)
 	case http.MethodDelete:
@@ -538,17 +544,28 @@ func (s *Server) handlePageCrawl(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	content, err := readability.ExtractContent(strings.NewReader(body))
-	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]string{
-			"content": "error: " + err.Error(),
-		})
+	content, ok := extractReadableContent(url, body)
+	if !ok {
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
-	content = sanitizer.Sanitize(url, content)
 	writeJSON(w, http.StatusOK, map[string]string{
 		"content": content,
 	})
+}
+
+// extractReadableContent returns the sanitized readable content of a page,
+// or ok=false when readability could not find any extractable text.
+func extractReadableContent(url, body string) (content string, ok bool) {
+	extracted, err := readability.ExtractContent(strings.NewReader(body))
+	if err != nil {
+		return "", false
+	}
+	sanitized := sanitizer.Sanitize(url, extracted)
+	if htmlutil.ExtractText(sanitized) == "" {
+		return "", false
+	}
+	return sanitized, true
 }
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {

@@ -8,6 +8,7 @@ import (
 
 var migrations = []func(*sql.Tx) error{
 	m01_initial,
+	m02_add_feed_readability,
 }
 
 var maxVersion = int64(len(migrations))
@@ -116,5 +117,10 @@ func m01_initial(tx *sql.Tx) error {
 			http_etag      text not null default ''
 		);
 	`)
+	return err
+}
+
+func m02_add_feed_readability(tx *sql.Tx) error {
+	_, err := tx.Exec(`alter table feeds add column readability boolean not null default false`)
 	return err
 }
