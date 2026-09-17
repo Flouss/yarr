@@ -1533,7 +1533,7 @@ export default defineComponent({
       } else {
         url.searchParams.set("item", String(id));
       }
-      history.replaceState(null, "", url);
+      history.replaceState(history.state, "", url);
     },
   },
 });
