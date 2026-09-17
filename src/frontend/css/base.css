@@ -2,6 +2,12 @@
   display: none !important;
 }
 
+/* reserve space under the iOS status bar / notch when installed as a
+   standalone PWA (viewport-fit=cover makes the env() vars non-zero) */
+.app-toolbar {
+  padding-top: max(0.25rem, env(safe-area-inset-top));
+}
+
 html {
   font-size: 15px !important;
   overscroll-behavior: none;

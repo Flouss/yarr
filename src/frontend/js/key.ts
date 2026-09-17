@@ -64,7 +64,7 @@ export function setupKeybindings(vm: InstanceType<typeof App>) {
       helperFunctions.scrollContent(-1);
     },
     closeItem() {
-      vm.itemSelected = null;
+      vm.closeItem();
     },
     showShortcuts() {
       vm.showModal = "shortcuts";
