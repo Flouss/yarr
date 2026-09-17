@@ -11,7 +11,7 @@
       class="vh-100 position-relative d-flex flex-column border-end flex-shrink-0"
       :style="{ width: feedListWidth + 'px' }">
       <v-drag :width="feedListWidth" @resize="resizeFeedList"></v-drag>
-      <div class="px-2 py-1 d-flex align-items-center">
+      <div class="app-toolbar px-2 pb-1 d-flex align-items-center">
         <v-icon class="mx-2" name="anchor" />
         <div class="flex-grow-1"></div>
         <button
@@ -192,7 +192,7 @@
       class="vh-100 position-relative d-flex flex-column border-end flex-shrink-0"
       :style="{ width: itemListWidth + 'px' }">
       <v-drag :width="itemListWidth" @resize="resizeItemList"></v-drag>
-      <div class="px-2 py-1 d-flex gap-1 align-items-center">
+      <div class="app-toolbar px-2 pb-1 d-flex gap-1 align-items-center">
         <button
           class="c-button-pill d-md-none"
           @click="feedSelected = null"
@@ -332,7 +332,7 @@
           class="c-listitem d-flex flex-column user-select-none"
           role="radio"
           :aria-checked="itemSelected === item.id"
-          @click="itemSelected = item.id">
+          @click="openItem(item.id)">
           <div
             style="line-height: 100%; opacity: 0.7; margin-bottom: 0.1rem"
             class="d-flex align-items-center">
@@ -367,7 +367,7 @@
     </div>
     <!-- item show -->
     <div id="col-item" class="vh-100 d-flex flex-column w-100" style="min-width: 0">
-      <div class="px-2 py-1 d-flex gap-1 align-items-center" v-if="itemSelectedDetails">
+      <div class="app-toolbar px-2 pb-1 d-flex gap-1 align-items-center" v-if="itemSelectedDetails">
         <button
           class="c-button-pill"
           @click="toggleItemStarred(itemSelectedDetails)"
@@ -452,7 +452,7 @@
           :disabled="!items.length || itemSelected == items[items.length - 1].id">
           <v-icon name="chevron-right" />
         </button>
-        <button class="c-button-pill" @click="itemSelected = null" :title="$t('close_article')">
+        <button class="c-button-pill" @click="closeItem()" :title="$t('close_article')">
           <v-icon name="x" />
         </button>
       </div>
@@ -591,6 +591,10 @@ export default defineComponent({
     this._colorSchemeMql = window.matchMedia("(prefers-color-scheme: dark)");
     this._colorSchemeMql.addEventListener("change", this.updateMetaTheme);
 
+    // let the OS/browser back gesture (e.g. iOS edge-swipe) close an open
+    // article the same way the close button does
+    window.addEventListener("popstate", this.onPopState);
+
     const [statsErr] = await to(this.refreshStats());
     if (statsErr) {
       this.$refs.toast.addToast(
@@ -614,6 +618,7 @@ export default defineComponent({
   },
   beforeUnmount() {
     this._colorSchemeMql?.removeEventListener("change", this.updateMetaTheme);
+    window.removeEventListener("popstate", this.onPopState);
   },
   data() {
     var s = app.settings;
@@ -937,6 +942,22 @@ export default defineComponent({
       metaTag && (metaTag.content = this.themeColors[theme]);
 
       document.documentElement.dataset.theme = this.theme.name;
+    },
+    openItem(id: number) {
+      if (this.itemSelected === null) {
+        history.pushState({ yarrItem: true }, "");
+      }
+      this.itemSelected = id;
+    },
+    closeItem() {
+      if (history.state?.yarrItem) {
+        history.back();
+      } else {
+        this.itemSelected = null;
+      }
+    },
+    onPopState() {
+      if (this.itemSelected !== null) this.itemSelected = null;
     },
     async refreshStats(loopMode?: boolean) {
       const [err, data] = await to(api.status());
