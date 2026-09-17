@@ -11,7 +11,7 @@
       class="vh-100 position-relative d-flex flex-column border-end flex-shrink-0"
       :style="{ width: feedListWidth + 'px' }">
       <v-drag :width="feedListWidth" @resize="resizeFeedList"></v-drag>
-      <div class="app-toolbar px-2 pb-1 d-flex align-items-center">
+      <div class="px-2 py-1 d-flex align-items-center">
         <v-icon class="mx-2" name="anchor" />
         <div class="flex-grow-1"></div>
         <button
@@ -192,7 +192,7 @@
       class="vh-100 position-relative d-flex flex-column border-end flex-shrink-0"
       :style="{ width: itemListWidth + 'px' }">
       <v-drag :width="itemListWidth" @resize="resizeItemList"></v-drag>
-      <div class="app-toolbar px-2 pb-1 d-flex gap-1 align-items-center">
+      <div class="px-2 py-1 d-flex gap-1 align-items-center">
         <button
           class="c-button-pill d-md-none"
           @click="feedSelected = null"
@@ -375,7 +375,7 @@
     </div>
     <!-- item show -->
     <div id="col-item" class="vh-100 d-flex flex-column w-100" style="min-width: 0">
-      <div class="app-toolbar px-2 pb-1 d-flex gap-1 align-items-center" v-if="itemSelectedDetails">
+      <div class="px-2 py-1 d-flex gap-1 align-items-center" v-if="itemSelectedDetails">
         <button
           class="c-button-pill"
           @click="toggleItemStarred(itemSelectedDetails)"
