@@ -24,10 +24,11 @@ func TestUpdateSettings(t *testing.T) {
 	dbtest(t, func(t *testing.T, s storage.Storage) {
 
 		params := model.UpdateSettingsParams{
-			ThemeName:     new("night"),
-			FeedListWidth: new(400),
-			RefreshRate:   new(int64(15)),
-			ThemeSize:     new(1.2),
+			ThemeName:        new("night"),
+			FeedListWidth:    new(400),
+			RefreshRate:      new(int64(15)),
+			ThemeSize:        new(1.2),
+			MarkReadOnScroll: new(true),
 		}
 
 		if ok := s.UpdateSettings(params); !ok {
@@ -47,6 +48,9 @@ func TestUpdateSettings(t *testing.T) {
 		}
 		if settings.ThemeSize != 1.2 {
 			t.Errorf("expected theme_size 1.2, got %v", settings.ThemeSize)
+		}
+		if settings.MarkReadOnScroll != true {
+			t.Errorf("expected mark_read_on_scroll true, got %v", settings.MarkReadOnScroll)
 		}
 	})
 }
